@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.nfyc.lcnotificationservice.domain.NfycLcResponse;
 import com.nfyc.lcnotificationservice.domain.NfycLcUser;
+import com.nfyc.lcnotificationservice.service.NfycLcEmailAlertService;
 import com.nfyc.lcnotificationservice.service.NfycLeetcodeService;
 import lombok.extern.slf4j.Slf4j;
 //import org.slf4j.Logger;
@@ -23,6 +24,9 @@ public class NfycLcFunctions {
     @Autowired
     private NfycLeetcodeService nfycLeetcodeService;
 
+    @Autowired
+    private NfycLcEmailAlertService nfycLcEmailAlertService;
+
 
     @Bean(name = "registerUserForEmailAlert")
     public Function<NfycLcUser, NfycLcResponse> registerUserForEmailAlert() {
@@ -31,11 +35,11 @@ public class NfycLcFunctions {
 
     @Bean("getLcDailyChallenge")
     public Supplier<NfycLcResponse> getLcDailyChallenge() {
-        return () -> nfycLeetcodeService.getDailyChallenge();
+        return () -> nfycLeetcodeService.getRecentACSubmissionForAUser("test");
     }
 
     @Bean("getAllNfycUser")
     public Supplier<List<NfycLcUser>> getAllNfycUser() {
-        return () -> nfycLeetcodeService.getAllNfycUser();
+        return () -> nfycLcEmailAlertService.getAllNfycUser();
     }
 }

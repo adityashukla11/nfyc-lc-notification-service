@@ -18,7 +18,10 @@ public class NfycGraphQLQueries {
       """;
 
   public static final String GET_RECENT_AC_SUBMISSION = """
-      query ($username: String!, $limit: Int) {
+      query getUserProfile($username: String!, $limit: Int!) {
+          matchedUser(username: $username) {
+            username
+          }
           recentAcSubmissionList(username: $username, limit: $limit) {
               title
               titleSlug
@@ -26,6 +29,6 @@ public class NfycGraphQLQueries {
               statusDisplay
               lang
           }
-      }  
+      }
       """;
 }

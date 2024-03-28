@@ -6,7 +6,8 @@
     "FUNCTIONS_EXTENSION_VERSION": "~4",
     "AzureWebJobsDashboard": "",
     "MAIN_CLASS": "com.nfyc.lcnotificationservice.NfycLcNotificationService",
-    "NFYC_MANAGED_IDENTITY_CLIENT_ID": "2397d3e4-4dd9-495b-83fd-676997feeb6b"
-
+    "NFYC_MANAGED_IDENTITY_CLIENT_ID": "2397d3e4-4dd9-495b-83fd-676997feeb6b",
+    "AZURE_COMMUNICATION_SERVICE_ENDPOINT": "https://nfyc-communication.unitedstates.communication.azure.com",
+    "SENDER_EMAIL_ADDRESS": "DoNotReply@7dcc06c9-98d7-4dba-879d-67bfc9f7a2b8.azurecomm.net"
   }
 }
