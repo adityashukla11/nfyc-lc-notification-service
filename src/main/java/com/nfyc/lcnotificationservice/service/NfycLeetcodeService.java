@@ -11,6 +11,8 @@ import com.nfyc.lcnotificationservice.domain.NfycLcResponse;
 import com.nfyc.lcnotificationservice.domain.NfycLcUser;
 import com.nfyc.lcnotificationservice.domain.NfycLcUserDailyStatusChallenge;
 import com.nfyc.lcnotificationservice.utils.NfycGraphQLQueries;
+import com.nfyc.lcnotificationservice.utils.NfycLcEcxeption;
+import com.nfyc.lcnotificationservice.utils.NfycLcError;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
 import jakarta.validation.Validator;
@@ -32,7 +34,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
 
 import static com.nfyc.lcnotificationservice.utils.NfycLcConstants.RECORD_LIMIT;
 
@@ -40,7 +41,7 @@ import static com.nfyc.lcnotificationservice.utils.NfycLcConstants.RECORD_LIMIT;
 @RequiredArgsConstructor
 @Service
 public class NfycLeetcodeService {
-
+//
   private final HttpGraphQlClient nfycGraphQLClient;
   private final ObjectMapper objectMapper;
   private final TableClient tableClient;
@@ -56,10 +57,6 @@ public class NfycLeetcodeService {
 
   public NfycLcResponse saveLcUser(NfycLcUser nfycLcUser) {
     try {
-      if (this.doesUserAlreadyExists(nfycLcUser)) {
-        log.info("Cannot create user as user already exists");
-        throw new RuntimeException("User Cannot be created");
-      }
       Set<ConstraintViolation<NfycLcUser>> violations = validator.validate(nfycLcUser);
       if (!violations.isEmpty()) {
         StringBuilder sb = new StringBuilder();
@@ -68,15 +65,26 @@ public class NfycLeetcodeService {
         }
         throw new ConstraintViolationException("Error occurred: " + sb.toString(), violations);
       }
+      if (this.doesUserAlreadyExists(nfycLcUser)) {
+        log.info("Cannot create user as user already exists");
+        throw new NfycLcEcxeption(NfycLcError.ERROR_USER_EMAIL_ALREADY_EXIST, nfycLcUser.getEmail());
+      }
+      try {
+        NfycLcResponse nfycLcResponse = this.getRecentACSubmissionForAUser(nfycLcUser.getLcUsername());
+      } catch (NfycLcEcxeption e) {
+        throw new NfycLcEcxeption(NfycLcError.ERROR_LC_USERNAME_INVALID, nfycLcUser.getLcUsername());
+      }
       tableClient.upsertEntity(convertNfycLcUserToTableEntity(nfycLcUser));
       ObjectNode response = objectMapper.createObjectNode();
       response.put("message", "User was successfully created");
       return new NfycLcResponse(response);
     } catch (ConstraintViolationException e) {
-//      throw new RuntimeException(e.getMessage());
-      throw e;
+      log.error("Validation Error Occurred while creating user: " + e.getConstraintViolations());
+      throw new NfycLcEcxeption(NfycLcError.ERROR_USER_CREATION_FAILED, e.getConstraintViolations().stream()
+          .findFirst().get().getMessage());
     }
   }
+
 
   private TableEntity convertNfycLcUserToTableEntity(NfycLcUser nfycLcUser) {
     String partitionKey = "nfyclcuser";
@@ -106,26 +114,24 @@ public class NfycLeetcodeService {
         .execute()
         .<JsonNode>handle((response, sink) -> {
           if (!response.isValid()) {
-            sink.error(new RuntimeException("Request failed"));
+            sink.error(new NfycLcEcxeption(NfycLcError.ERROR_LC_API_REQUEST_FAILED));
             return;
           }
-          System.out.println("Response is " + response);
           List<ResponseError> error = response.getErrors();
           if (!error.isEmpty()) {
             ClientResponseField username = response.field("matchedUser");
             if (username.getValue() == null) {
-              System.out.println("The username: " + lcUsername + " is invalid");
-              sink.error(new RuntimeException("The username is invalid"));
+              log.info("The username: " + lcUsername + " is invalid");
+              sink.error(new NfycLcEcxeption(NfycLcError.ERROR_LC_USERNAME_INVALID, lcUsername));
             } else {
-              System.out.println("The some error occrured");
-              sink.error(new RuntimeException("Some error occureed"));
+              log.error("Error occurred while hitting lc api: getRecentSubmissionForAUser");
+              sink.error(new NfycLcEcxeption(NfycLcError.ERROR_LC_API_REQUEST_FAILED));
             }
             return;
           }
           sink.next(response.toEntity(JsonNode.class));
         })
         .map(NfycLcResponse::new)
-        .onErrorMap(error -> new RuntimeException(error.getMessage()))
         .block();
   }
 
@@ -136,12 +142,11 @@ public class NfycLeetcodeService {
       for (JsonNode question : acArray) {
         String titleSlug = question.get("titleSlug").asText();
         String timestamp = question.get("timestamp").asText();
-        System.out.println(titleSlug.equals(dailyChallengeTitleSlug));
         if (titleSlug.equals(dailyChallengeTitleSlug) && isSubmissionDateValid(timestamp)) {
           return NfycLcUserDailyStatusChallenge.SUBMITTED;
         }
       }
-    } catch (RuntimeException e) {
+    } catch (Exception e) {
       return NfycLcUserDailyStatusChallenge.ERROR;
     }
     return NfycLcUserDailyStatusChallenge.NOT_SUBMITTED;
@@ -161,13 +166,15 @@ public class NfycLeetcodeService {
           .get("question").get("titleSlug").asText();
       String date = activeDailyChallengeReq.getData().get("date").asText();
       if (Objects.isNull(dailyChallengeTitleSlug)) {
-        throw new RuntimeException("Cant");
+        log.error("Error while fetching the daily challenge info");
+        throw new NfycLcEcxeption(NfycLcError.ERROR_LC_API_REQUEST_FAILED);
       }
       SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
       try {
         dailyChallengeQuesDate = sdf.parse(date);
       } catch (ParseException pe) {
-        throw new RuntimeException("Cannot parse");
+        log.error("Could not correctly parse date while fetching the daily challenge info");
+        throw new NfycLcEcxeption(NfycLcError.ERROR_LC_API_REQUEST_FAILED);
       }
     }
   }

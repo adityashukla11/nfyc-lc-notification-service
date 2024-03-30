@@ -2,9 +2,15 @@ package com.nfyc.lcnotificationservice.utils;
 
 public enum NfycLcError {
 
-  ERROR_FILE_RETRIEVAL_FAILED("Error occurred while fetching file from %s container with error message %s"),
-  ERROR_EMAIL_SENDING_FAILED("Error while sending email to client. The error message is:  %s");
+  //Application
 
+  //Validation
+  ERROR_USER_EMAIL_ALREADY_EXIST ("The user email %s already exists. Failed to create user"),
+  ERROR_LC_USERNAME_INVALID ("The leetcode username %s entered by user is invalid. Failed to create user"),
+  ERROR_USER_CREATION_FAILED ("Error occurred while creating user: %s"),
+
+  ERROR_LC_API_REQUEST_FAILED("Something went wrong. Please try again later"),
+  ERROR_NO_API_PAYLOAD ("No API Payload was specified");
   private final String errorMessage;
 
   NfycLcError(String errorMessage) {

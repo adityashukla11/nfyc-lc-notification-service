@@ -11,14 +11,12 @@ import com.azure.data.tables.models.TableEntity;
 import com.nfyc.lcnotificationservice.domain.NfycLcUser;
 import com.nfyc.lcnotificationservice.domain.NfycLcUserDailyStatusChallenge;
 import com.nfyc.lcnotificationservice.utils.NfycEmailBodyFactory;
-import jakarta.validation.ConstraintViolationException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentMap;
 import java.util.stream.Collectors;
@@ -33,8 +31,7 @@ public class NfycLcEmailAlertService {
   private final NfycAzureTableQueryUtil nfycAzureTableQueryUtil;
   private final EmailClient emailClient;
 
-  public List<NfycLcUser> getAllNfycUser() {
-    try {
+  public String triggerLcEmailAlertsForUsers() {
       String partitionKey = "nfyclcuser";
       ListEntitiesOptions options = new ListEntitiesOptions()
           .setFilter(this.nfycAzureTableQueryUtil.getAllEntitiesByPartitionKey(partitionKey));
@@ -44,14 +41,19 @@ public class NfycLcEmailAlertService {
       ConcurrentMap<NfycLcUserDailyStatusChallenge, List<NfycLcUser>> userMap =
           user.parallelStream()
           .collect(Collectors.groupingByConcurrent(this.nfycLeetcodeService::hasUserSuccessfullySubmittedTheDailyChallenge));
-      System.out.println("Submitted: " + userMap.get(NfycLcUserDailyStatusChallenge.NOT_SUBMITTED));
-      sendEmail(NfycLcUserDailyStatusChallenge.SUBMITTED, userMap.get(NfycLcUserDailyStatusChallenge.SUBMITTED));
-      sendEmail(NfycLcUserDailyStatusChallenge.NOT_SUBMITTED, userMap.get(NfycLcUserDailyStatusChallenge.NOT_SUBMITTED));
-      return user;
-    } catch (ConstraintViolationException e) {
-      throw new RuntimeException("I CANT DO IT");
+
+      if (userMap.get(NfycLcUserDailyStatusChallenge.SUBMITTED) != null) {
+        sendEmail(NfycLcUserDailyStatusChallenge.SUBMITTED, userMap.get(NfycLcUserDailyStatusChallenge.SUBMITTED));
+        log.info("Triggering email for users who have successfully submitted the daily challenge");
+      }
+
+      if (userMap.get(NfycLcUserDailyStatusChallenge.NOT_SUBMITTED) != null) {
+        log.info("Triggering email for users who have NOT submitted the daily challenge");
+        sendEmail(NfycLcUserDailyStatusChallenge.NOT_SUBMITTED, userMap.get(NfycLcUserDailyStatusChallenge.NOT_SUBMITTED));
+      }
+
+      return "Executed the email alerts for today " + LocalDate.now();
     }
-  }
 
   private NfycLcUser convertTableEntityToNfycLcUser(TableEntity tableEntity) {
     return NfycLcUser.builder()
@@ -66,8 +68,10 @@ public class NfycLcEmailAlertService {
       EmailMessage emailMessage = NfycEmailBodyFactory.getEmailMessage(nfycLcUserDailyStatusChallenge, users);
       SyncPoller<EmailSendResult, EmailSendResult> poller = emailClient.beginSend(emailMessage, null);
       PollResponse<EmailSendResult> result = poller.waitForCompletion();
+      log.info("Email Triggered Status: " + result.getStatus());
     } catch (Exception e) {
-
+      log.error("Error occurred while sending the email : " + e.getMessage());
+      throw e;
     }
   }
 }
