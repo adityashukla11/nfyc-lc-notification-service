@@ -24,11 +24,11 @@
         <start-class>com.nfyc.lcnotificationservice.NfycLcNotificationService</start-class>
         <!-- AZURE FUNCTION CONFIG -->
         <azure.functions.maven.plugin.version>1.22.0</azure.functions.maven.plugin.version>
-        <functionAppName>spring-cloud-function-samples</functionAppName>
-        <functionAppRegion>westus</functionAppRegion>
-        <functionResourceGroup>sample-resource-group</functionResourceGroup>
-        <functionAppServicePlanName>sample-service-plan</functionAppServicePlanName>
-        <functionPricingTier>EP1</functionPricingTier>
+        <functionAppName>nfyc-lc-notifier</functionAppName>
+        <functionAppRegion>southindia</functionAppRegion>
+        <functionResourceGroup>rg-nfyc-app</functionResourceGroup>
+        <functionAppServicePlanName>ASP-rgnfycapp-9dc6</functionAppServicePlanName>
+        <functionPricingTier>Y1</functionPricingTier>
     </properties>
 
     <dependencyManagement>
@@ -57,11 +57,20 @@
         </dependency>
 
         <dependency>
+            <groupId>com.azure</groupId>
+            <artifactId>azure-communication-common</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.azure</groupId>
+            <artifactId>azure-communication-email</artifactId>
+        </dependency>
+
+        <dependency>
             <groupId>org.springframework.cloud</groupId>
             <artifactId>spring-cloud-function-adapter-azure</artifactId>
             <version>4.0.0</version>
         </dependency>
-
 
         <dependency>
             <groupId>org.springframework.boot</groupId>

@@ -11,21 +11,17 @@ import org.springframework.context.annotation.Scope;
 @RequiredArgsConstructor
 @Configuration
 public class AzureTableClientConfig {
-    private static final String TABLE_NAME = "nfyclcnotifications";
-    private final DefaultAzureCredential defaultAzureCredential;
+  private static final String TABLE_NAME = "nfyclcnotifications";
+  private final DefaultAzureCredential defaultAzureCredential;
 
-    @Bean
-    @Scope(value = "singleton")
-    public TableClient nfycAzureTableClient() {
-        try {
-            return new TableClientBuilder()
-                    .endpoint("https://lcnotifierstorage.table.core.windows.net")
-                     .credential(defaultAzureCredential)
-                    .tableName(TABLE_NAME)
-                    .buildClient();
-        } catch (Exception e) {
-            throw e;
-        }
-    }
+  @Bean
+  @Scope(value = "singleton")
+  public TableClient nfycAzureTableClient() {
+    return new TableClientBuilder()
+        .endpoint("https://lcnotifierstorage.table.core.windows.net")
+        .credential(defaultAzureCredential)
+        .tableName(TABLE_NAME)
+        .buildClient();
+  }
 
 }

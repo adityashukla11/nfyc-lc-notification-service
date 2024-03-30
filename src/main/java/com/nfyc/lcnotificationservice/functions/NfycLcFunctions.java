@@ -27,19 +27,12 @@ public class NfycLcFunctions {
     @Autowired
     private NfycLcEmailAlertService nfycLcEmailAlertService;
 
-
     @Bean(name = "registerUserForEmailAlert")
     public Function<NfycLcUser, NfycLcResponse> registerUserForEmailAlert() {
         return newUser -> nfycLeetcodeService.saveLcUser(newUser);
     }
-
-    @Bean("getLcDailyChallenge")
-    public Supplier<NfycLcResponse> getLcDailyChallenge() {
-        return () -> nfycLeetcodeService.getRecentACSubmissionForAUser("test");
-    }
-
-    @Bean("getAllNfycUser")
-    public Supplier<List<NfycLcUser>> getAllNfycUser() {
-        return () -> nfycLcEmailAlertService.getAllNfycUser();
+    @Bean("triggerLcEmailAlerts")
+    public Supplier<String> triggerLcEmailAlerts() {
+        return () -> nfycLcEmailAlertService.triggerLcEmailAlertsForUsers();
     }
 }
