@@ -10,7 +10,8 @@ public enum NfycLcError {
   ERROR_USER_CREATION_FAILED ("Error occurred while creating user: %s"),
 
   ERROR_LC_API_REQUEST_FAILED("Something went wrong. Please try again later"),
-  ERROR_NO_API_PAYLOAD ("No API Payload was specified");
+  ERROR_NO_API_PAYLOAD ("No API Payload was specified"),
+  ERROR_QUESTION_INFO_NOT_FOUND ("No information found for the question %s");
   private final String errorMessage;
 
   NfycLcError(String errorMessage) {

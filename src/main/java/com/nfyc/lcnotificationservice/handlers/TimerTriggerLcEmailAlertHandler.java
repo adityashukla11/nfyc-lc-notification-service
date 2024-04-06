@@ -18,7 +18,7 @@ public class TimerTriggerLcEmailAlertHandler {
     private final Supplier<String> triggerLcEmailAlerts;
     @FunctionName("triggerLcEmailAlerts")
     public void execute(
-        @TimerTrigger(name = "timerInfo", schedule = "0 0 20,22 * *") String timerInfo,
+        @TimerTrigger(name = "timerInfo", schedule = "0 30 15 * * *") String timerInfo,
         final ExecutionContext context
     ) {
 

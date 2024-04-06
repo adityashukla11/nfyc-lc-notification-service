@@ -51,7 +51,6 @@ public class NfycLcEmailAlertService {
         log.info("Triggering email for users who have NOT submitted the daily challenge");
         sendEmail(NfycLcUserDailyStatusChallenge.NOT_SUBMITTED, userMap.get(NfycLcUserDailyStatusChallenge.NOT_SUBMITTED));
       }
-
       return "Executed the email alerts for today " + LocalDate.now();
     }
 
@@ -59,7 +58,6 @@ public class NfycLcEmailAlertService {
     return NfycLcUser.builder()
         .userId(UUID.fromString(tableEntity.getProperty("userId").toString()))
         .email(tableEntity.getRowKey())
-        .fullName(tableEntity.getProperty("fullName").toString())
         .lcUsername(tableEntity.getProperty("lcUsername").toString()).build();
   }
 

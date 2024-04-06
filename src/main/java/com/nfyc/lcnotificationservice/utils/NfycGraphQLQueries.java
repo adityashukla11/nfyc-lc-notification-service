@@ -31,4 +31,15 @@ public class NfycGraphQLQueries {
           }
       }
       """;
+
+  public static final String GET_QUESTION_DETAIL = """
+      query selectProblem($titleSlug: String!) {
+          question(titleSlug: $titleSlug) {
+              questionId
+              title
+              isPaidOnly
+              difficulty
+          }
+      }
+      """;
 }

@@ -2,6 +2,7 @@ package com.nfyc.lcnotificationservice.utils;
 
 import com.azure.communication.email.models.EmailAddress;
 import com.azure.communication.email.models.EmailMessage;
+import com.nfyc.lcnotificationservice.domain.LcAttemptedQuestion;
 import com.nfyc.lcnotificationservice.domain.NfycLcUser;
 import com.nfyc.lcnotificationservice.domain.NfycLcUserDailyStatusChallenge;
 
@@ -63,6 +64,34 @@ public class NfycEmailBodyFactory {
       </html>
       """;
 
+  private static final String topicsToRevise = """
+      <!DOCTYPE html>
+      <html lang="en">
+      <head>
+          <meta charset="UTF-8">
+          <meta http-equiv="X-UA-Compatible" content="IE=edge">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>Reminder to complete the Leetcode Daily Challenge</title>
+      </head>
+      <body>
+          <p>
+              Hey there,
+          </p>
+          <p>
+            Please find the questions to revise for today:
+            <br>
+            %s
+          </p>
+          <p>
+             Keep up the good work and keep grinding!
+          </p>
+          <p>
+              Thank you<br>
+          </p>
+      </body>
+      </html>
+      """;
+
   public static EmailMessage getEmailMessage(NfycLcUserDailyStatusChallenge nfycLcUserDailyStatusChallenge, List<NfycLcUser> recipientEmailAddresses) {
     List<EmailAddress> emailAddressList = recipientEmailAddresses.stream().map(nfycLcUser -> new EmailAddress(nfycLcUser.getEmail())).toList();
     EmailMessage emailMessage = new EmailMessage()
@@ -78,6 +107,33 @@ public class NfycEmailBodyFactory {
       throw new RuntimeException("The email type is not supported");
     }
     return emailMessage;
+  }
+
+  public static EmailMessage getRevisionEmailBody(List<LcAttemptedQuestion> questions, String recepient) {
+    EmailAddress recipientEmailAddress = new EmailAddress(recepient);
+    StringBuilder message = new StringBuilder();
+    message.append("<ul>");
+    for (LcAttemptedQuestion question : questions) {
+      message.append("<li>").append(question.getQuestionTitle()).append("</li>");
+      message.append("<ul>").append("<li>").append("Problem url: ")
+          .append("<a href=\"%s\">".formatted(generateLeetcodeProblemUrl(question.getQuestionTitleSlug())))
+          .append(question.getQuestionTitle()).append("</a></li>")
+          .append("<li> You last solved the problem on: ")
+          .append(question.getLastSolvedDate())
+          .append("</li></ul>");
+    }
+    message.append("</ul>");
+    EmailMessage emailMessage = new EmailMessage();
+    emailMessage.setSubject("Leetcode Daily Revision Problems")
+        .setSenderAddress(NfycLcConstants.SENDER_EMAIL_ADDRESS)
+        .setToRecipients(recipientEmailAddress);
+    String emailMessageBody = topicsToRevise.formatted(message.toString());
+    emailMessage.setBodyHtml(emailMessageBody);
+    return emailMessage;
+  }
+
+  private static String generateLeetcodeProblemUrl(String titleSlug) {
+    return "https://leetcode.com/problems/%s/".formatted(titleSlug);
   }
 
 }
