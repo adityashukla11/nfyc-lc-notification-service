@@ -1,7 +1,7 @@
 ## nfyc-lc-revision-service
 [![CircleCI](https://dl.circleci.com/status-badge/img/gh/adityashukla11/nfyc-lc-revison-service/tree/master.svg?style=svg)](https://dl.circleci.com/status-badge/redirect/gh/adityashukla11/nfyc-lc-revison-service/tree/master)
 <br>
-[![SonarCloud](https://sonarcloud.io/images/project_badges/sonarcloud-black.svg)](https://sonarcloud.io/summary/new_code?id=adityashukla11_nfyc-lc-revison-service)
+[![Quality gate](https://sonarcloud.io/api/project_badges/quality_gate?project=adityashukla11_nfyc-lc-revison-service)](https://sonarcloud.io/summary/new_code?id=adityashukla11_nfyc-lc-revison-service)
 <br>
 
 **Tired of forgetting what you learned on Leetcode**? This tool is here to help!
