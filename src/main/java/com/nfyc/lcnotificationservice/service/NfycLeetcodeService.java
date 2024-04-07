@@ -6,6 +6,7 @@ import com.azure.data.tables.models.TableEntity;
 import com.azure.data.tables.models.TableServiceException;
 import com.azure.data.tables.models.TableTransactionAction;
 import com.azure.data.tables.models.TableTransactionActionType;
+import com.azure.data.tables.models.TableTransactionResult;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
@@ -111,7 +112,7 @@ public class NfycLeetcodeService {
       throw new NfycLcEcxeption(NfycLcError.ERROR_USER_CREATION_FAILED, e.getConstraintViolations().stream()
           .findFirst().get().getMessage());
     } catch (Exception e) {
-      log.error("Error occurred while creating entities for user: " + nfycLcUser.getEmail() + "with error: " + e.getMessage()) ;
+      log.error("Error occurred while creating entities for user: " + nfycLcUser.getEmail() + "with error: " + e.getMessage());
       throw e;
     }
   }
@@ -122,8 +123,7 @@ public class NfycLeetcodeService {
         .setFilter(this.nfycAzureTableQueryUtil.getAllEntitiesByPartitionKey(userPartitionKey));
     List<NfycLcUser> user = tableClient.listEntities(options, null, null)
         .stream().map(this::convertTableEntityToNfycLcUser).toList();
-
-      user.parallelStream().flatMap(currentUser -> {
+    var tableTransactionResult = user.parallelStream().flatMap(currentUser -> {
       NfycLcResponse userSubmission = getRecentACSubmissionForAUser(currentUser.getLcUsername());
       ArrayNode acArray = (ArrayNode) userSubmission.getData().get("recentAcSubmissionList");
       Iterator<JsonNode> nodes = acArray.elements();
@@ -181,11 +181,12 @@ public class NfycLeetcodeService {
       }
     }).filter(Objects::nonNull).collect(Collectors.collectingAndThen(Collectors.toList(), (result) -> {
       if (!result.isEmpty()) {
-       return tableClient.submitTransaction(result);
+        return tableClient.submitTransaction(result);
       } else {
-        return Collections.emptyList();
+        return null;
       }
     }));
+    log.info("Table Transaction Result" + tableTransactionResult);
     return "Completed";
   }
 
@@ -200,7 +201,7 @@ public class NfycLeetcodeService {
     String partitionKey = "ac_questions";
     Set<String> visited = new HashSet<>();
     ArrayNode acArray = (ArrayNode) userSubmission.getData().get("recentAcSubmissionList");
-    StreamSupport.stream(acArray.spliterator(), true).map(question -> {
+    var tableTransactionResult = StreamSupport.stream(acArray.spliterator(), true).map(question -> {
       String titleSlug = question.get("titleSlug").asText();
       String timestamp = question.get("timestamp").asText();
       String title = question.get("title").asText();
@@ -230,13 +231,14 @@ public class NfycLeetcodeService {
         return null;
       }
     }).filter(tableTransactionAction -> Objects.nonNull(tableTransactionAction)).collect(
-            Collectors.collectingAndThen(Collectors.toList(), (result) -> {
-              if (!result.isEmpty()) {
-                return tableClient.submitTransaction(result);
-              } else {
-                return Collections.emptyList();
-              }
-            }));
+        Collectors.collectingAndThen(Collectors.toList(), (result) -> {
+          if (!result.isEmpty()) {
+            return tableClient.submitTransaction(result);
+          } else {
+            return null;
+          }
+        }));
+    log.info("Table Transaction Result" + tableTransactionResult);
   }
 
   private TableEntity convertNfycLcUserToTableEntity(NfycLcUser nfycLcUser) {
