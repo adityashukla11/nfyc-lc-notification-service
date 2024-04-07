@@ -47,5 +47,6 @@ public class NfycLcCreateUserHandler {
             error.put("message", e.getMessage());
             return request.createResponseBuilder(HttpStatus.INTERNAL_SERVER_ERROR).body(error).build();
         }
+
     }
 }

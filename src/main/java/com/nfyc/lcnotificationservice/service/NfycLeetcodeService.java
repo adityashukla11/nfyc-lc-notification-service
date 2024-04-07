@@ -34,13 +34,7 @@ import java.text.SimpleDateFormat;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
@@ -116,6 +110,9 @@ public class NfycLeetcodeService {
       log.error("Validation Error Occurred while creating user: " + e.getConstraintViolations());
       throw new NfycLcEcxeption(NfycLcError.ERROR_USER_CREATION_FAILED, e.getConstraintViolations().stream()
           .findFirst().get().getMessage());
+    } catch (Exception e) {
+      log.error("Error occurred while creating entities for user: " + nfycLcUser.getEmail() + "with error: " + e.getMessage()) ;
+      throw e;
     }
   }
 
@@ -126,12 +123,21 @@ public class NfycLeetcodeService {
     List<NfycLcUser> user = tableClient.listEntities(options, null, null)
         .stream().map(this::convertTableEntityToNfycLcUser).toList();
 
-    user.parallelStream().flatMap(currentUser -> {
+      user.parallelStream().flatMap(currentUser -> {
       NfycLcResponse userSubmission = getRecentACSubmissionForAUser(currentUser.getLcUsername());
       ArrayNode acArray = (ArrayNode) userSubmission.getData().get("recentAcSubmissionList");
-      for (JsonNode question : acArray) {
-        ObjectNode objectNode = (ObjectNode) question;
-        objectNode.put("email", currentUser.getEmail());
+      Iterator<JsonNode> nodes = acArray.elements();
+      Set<String> visited = new HashSet<>();
+      while (nodes.hasNext()) {
+        JsonNode currNode = nodes.next();
+        String titleSlug = currNode.get("titleSlug").asText();
+        if (visited.contains(titleSlug)) {
+          nodes.remove();
+        } else {
+          visited.add(titleSlug);
+          ObjectNode objectNode = (ObjectNode) currNode;
+          objectNode.put("email", currentUser.getEmail());
+        }
       }
       return StreamSupport.stream(acArray.spliterator(), true);
     }).filter(question -> {
@@ -142,7 +148,6 @@ public class NfycLeetcodeService {
       String titleSlug = question.get("titleSlug").asText();
       String timestamp = question.get("timestamp").asText();
       String title = question.get("title").asText();
-
       String email = question.get("email").asText();
       String rowKey = email + ":" + titleSlug;
 
@@ -174,8 +179,13 @@ public class NfycLeetcodeService {
         log.error("Exception Occurred while fetching question details " + e.getMessage());
         return null;
       }
-    }).filter(Objects::nonNull).collect(Collectors.collectingAndThen(Collectors.toList(),
-        tableClient::submitTransaction));
+    }).filter(Objects::nonNull).collect(Collectors.collectingAndThen(Collectors.toList(), (result) -> {
+      if (!result.isEmpty()) {
+       return tableClient.submitTransaction(result);
+      } else {
+        return Collections.emptyList();
+      }
+    }));
     return "Completed";
   }
 
@@ -188,6 +198,7 @@ public class NfycLeetcodeService {
 
   private void updateUserRecentlyACQuestions(NfycLcUser nfycLcUser, NfycLcResponse userSubmission) {
     String partitionKey = "ac_questions";
+    Set<String> visited = new HashSet<>();
     ArrayNode acArray = (ArrayNode) userSubmission.getData().get("recentAcSubmissionList");
     StreamSupport.stream(acArray.spliterator(), true).map(question -> {
       String titleSlug = question.get("titleSlug").asText();
@@ -206,6 +217,10 @@ public class NfycLeetcodeService {
         nfycLcUserQuestion.put("priority", priority);
         nfycLcUserQuestion.put("nextRevisionDate", this.nfycRevisionAlgo.getNextRevisionDate(new Date(), priority, 1));
         String rowKey = nfycLcUser.getEmail() + ":" + titleSlug;
+        if (visited.contains(rowKey)) {
+          return null;
+        }
+        visited.add(rowKey);
         return new TableTransactionAction(
             TableTransactionActionType.CREATE,
             new TableEntity(partitionKey, rowKey)
@@ -214,8 +229,14 @@ public class NfycLeetcodeService {
         log.error("Exception Occurred while fetching question details " + e.getMessage());
         return null;
       }
-    }).filter(Objects::nonNull).collect(Collectors.collectingAndThen(Collectors.toList(),
-        tableClient::submitTransaction));
+    }).filter(tableTransactionAction -> Objects.nonNull(tableTransactionAction)).collect(
+            Collectors.collectingAndThen(Collectors.toList(), (result) -> {
+              if (!result.isEmpty()) {
+                return tableClient.submitTransaction(result);
+              } else {
+                return Collections.emptyList();
+              }
+            }));
   }
 
   private TableEntity convertNfycLcUserToTableEntity(NfycLcUser nfycLcUser) {
@@ -309,7 +330,6 @@ public class NfycLeetcodeService {
   public void setDailyChallengeInfo() {
     if (dailyChallengeTitleSlug.isEmpty()) {
       NfycLcResponse activeDailyChallengeReq = getDailyChallenge();
-      System.out.println(activeDailyChallengeReq.getData().toString());
       dailyChallengeTitleSlug = activeDailyChallengeReq.getData()
           .get("question").get("titleSlug").asText();
       String date = activeDailyChallengeReq.getData().get("date").asText();
