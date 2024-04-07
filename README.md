@@ -1,3 +1,5 @@
+[![CircleCI](https://dl.circleci.com/status-badge/img/gh/adityashukla11/nfyc-lc-revison-service/tree/master.svg?style=svg)](https://dl.circleci.com/status-badge/redirect/gh/adityashukla11/nfyc-lc-revison-service/tree/master)
+
 ## nfyc-lc-revision-service
 
 **Tired of forgetting what you learned on Leetcode**? This tool is here to help!
