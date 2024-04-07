@@ -12,7 +12,7 @@
     <groupId>com.nfyc</groupId>
     <artifactId>nfyc-lc-notification-service</artifactId>
     <version>0.0.1-SNAPSHOT</version>
-    <name>azure-httptrigger-demo</name>
+    <name>nfyc-lc-revision-service</name>
 
     <description>Lc Nfyc</description>
 
