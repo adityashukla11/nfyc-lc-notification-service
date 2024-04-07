@@ -192,12 +192,14 @@ public class NfycLeetcodeService {
     StreamSupport.stream(acArray.spliterator(), true).map(question -> {
       String titleSlug = question.get("titleSlug").asText();
       String timestamp = question.get("timestamp").asText();
+      String title = question.get("title").asText();
       try {
         NfycLcResponse questionDetail = getQuestionDetails(titleSlug);
         int priority = LcQuestionPriority.valueOf(questionDetail.getData().get("question")
             .get("difficulty").asText()).getPriority();
         Map<String, Object> nfycLcUserQuestion = new HashMap<>();
-        nfycLcUserQuestion.put("questionTitle", titleSlug);
+        nfycLcUserQuestion.put("questionTitle", title);
+        nfycLcUserQuestion.put("questionTitleSlug", titleSlug);
         nfycLcUserQuestion.put("lastSolvedDate", this.getDateFromTimestamp(timestamp));
         nfycLcUserQuestion.put("lastRevisedDate", new Date());
         nfycLcUserQuestion.put("revisionCount", 1);
